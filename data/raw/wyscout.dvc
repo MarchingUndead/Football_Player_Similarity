@@ -1,0 +1,6 @@
+outs:
+- md5: bc9cb824d9c51b905096923f70e2513f.dir
+  size: 966804473
+  nfiles: 19
+  hash: md5
+  path: wyscout

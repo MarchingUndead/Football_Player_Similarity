@@ -1,0 +1,38 @@
+# Provenance record: exact versions of every external dataset used by this project.
+# Update only when a download actually happens. This is evidence, not configuration.
+
+statsbomb:
+  repo: https://github.com/statsbomb/open-data
+  commit: b0bc9f22dd77c206ddedc1d742893b3bbe64baec
+  sparse: [data/events, data/lineups, data/matches, data/competitions.json]
+  fetched: 2026-08-10
+  note: 12 GB events, 4235 match files on disk; three-sixty/ deferred until M6
+
+wyscout:
+  collection_doi: 10.6084/m9.figshare.c.4415000.v5
+  license: CC BY 4.0
+  citation: Pappalardo et al., Scientific Data 6:236 (2019)
+  fetched: 2026-08-10
+  sha256:
+    events.zip: 877e015b716ffdeea18f04418e3f24fed307ed03c37ff305cabe1f47c4822a45
+    matches.zip: c8f92bb7533e5c127e043cee764c991b5c25b4f5e70a65be931baae0b1765ce9
+    players.json: 877a111cb1005b73df5645e9338bd74fb4b496bace2fbc545a72abb3b73efa2e
+    teams.json: 9f7a4a3b3d92c0be33f40613ad6e6eb4316c3b9771ec74c61a22c9b8ece23a4d
+    competitions.json: 39a738d2bc97638502e1ead01d661b54c623d6d6b37f77de3846f9a94db7a3a1
+    eventid2name.csv: ce7bafb341b36ab4c6093bf1c09c967e9cea10d4223724a1fc679086e5d16842
+    tags2name.csv: e0bc1bd8ff6ea5339586fdfc3e8e9b285a4a18f1ae2f5868ccc9ec9cecc8a922
+  note: zips deleted after extraction + hashing; re-download URLs are the figshare
+    ndownloader links recorded in the project chat / regenerable from the DOI
+
+transfermarkt:
+  kaggle: davidcariboo/player-scores
+  dataset_last_updated: 2026-08-05 07:19
+  fetched: 2026-08-10
+  license: CC0-1.0
+  files: [appearances, club_games, clubs, competitions, countries, game_events,
+          game_lineups, games, national_teams, player_valuations, players, transfers]
+  note: dataset refreshes weekly upstream; this snapshot is content-hashed by DVC
+    (data/raw/transfermarkt.dvc)
+
+# pending download:
+# reep: pin repo commit on download day

@@ -1,0 +1,6 @@
+outs:
+- md5: 7725b01a62a877f529018266d19298b9.dir
+  size: 758821269
+  nfiles: 12
+  hash: md5
+  path: transfermarkt
