@@ -1,0 +1,154 @@
+schema: '2.0'
+stages:
+  staging_statsbomb:
+    cmd: python src/ingest/to_parquet.py
+    deps:
+    - path: config.yaml
+      hash: md5
+      md5: eb559350898f09b01453abf33bd5375d
+      size: 956
+    - path: manifest.yaml
+      hash: md5
+      md5: cdf410eafdcb7d2bd5e4c500c8627881
+      size: 2345
+    - path: src/ingest/corpus.py
+      hash: md5
+      md5: 9962f65f9cad55cce8c343b9a1727db5
+      size: 509
+    - path: src/ingest/to_parquet.py
+      hash: md5
+      md5: a405a3c4e9151008dbc0efa0e0d9a9f5
+      size: 12385
+    outs:
+    - path: data/staging/statsbomb
+      hash: md5
+      md5: d4a16da5d719ac9f3cdfd55e55758ba5.dir
+      size: 834397183
+      nfiles: 237
+  validate_staging:
+    cmd: python src/ingest/validate.py
+    deps:
+    - path: data/staging/statsbomb
+      hash: md5
+      md5: d4a16da5d719ac9f3cdfd55e55758ba5.dir
+      size: 834397183
+      nfiles: 237
+    - path: src/ingest/corpus.py
+      hash: md5
+      md5: 9962f65f9cad55cce8c343b9a1727db5
+      size: 509
+    - path: src/ingest/validate.py
+      hash: md5
+      md5: b66eada77b7befa8e49fc5eb06c08d63
+      size: 6207
+    outs:
+    - path: reports/staging_validation.md
+      hash: md5
+      md5: 0e5d5f61079ad9483009082e3e3d8c14
+      size: 520
+  orientation_check:
+    cmd: python src/ingest/orientation_check.py
+    deps:
+    - path: data/staging/statsbomb
+      hash: md5
+      md5: d4a16da5d719ac9f3cdfd55e55758ba5.dir
+      size: 834397183
+      nfiles: 237
+    - path: src/ingest/corpus.py
+      hash: md5
+      md5: 9962f65f9cad55cce8c343b9a1727db5
+      size: 509
+    - path: src/ingest/orientation_check.py
+      hash: md5
+      md5: b03e5fda356a71154888c01777560563
+      size: 3081
+    outs:
+    - path: reports/orientation_check.md
+      hash: md5
+      md5: 776f8b02d9ffa721784e1abddaa97c48
+      size: 538
+  build_views:
+    cmd: python src/ingest/build_views.py
+    deps:
+    - path: data/staging/statsbomb
+      hash: md5
+      md5: d4a16da5d719ac9f3cdfd55e55758ba5.dir
+      size: 834397183
+      nfiles: 237
+    - path: src/ingest/build_views.py
+      hash: md5
+      md5: fe1f9eb7ff4401470d5fead63d7d9397
+      size: 4167
+    - path: src/ingest/corpus.py
+      hash: md5
+      md5: 9962f65f9cad55cce8c343b9a1727db5
+      size: 509
+    outs:
+    - path: data/football.duckdb
+      hash: md5
+      md5: a24874b2c93835d84d5eddcfd906703a
+      size: 536576
+  identity_join:
+    cmd: python src/harmonise/identity_join.py
+    deps:
+    - path: data/raw/reep
+      hash: md5
+      md5: 1d61647341fa3a71264edf977887dce9.dir
+      size: 218937648
+      nfiles: 21
+    - path: data/raw/transfermarkt
+      hash: md5
+      md5: 7725b01a62a877f529018266d19298b9.dir
+      size: 758821269
+      nfiles: 12
+    - path: data/staging/statsbomb
+      hash: md5
+      md5: d4a16da5d719ac9f3cdfd55e55758ba5.dir
+      size: 834397183
+      nfiles: 237
+    - path: src/harmonise/identity_join.py
+      hash: md5
+      md5: bf30679254213e36b2edf1344d81ceec
+      size: 6770
+    - path: src/harmonise/identity_overrides.csv
+      hash: md5
+      md5: 2934788cfa7cd9eb743b80b944173af8
+      size: 31
+    - path: src/ingest/corpus.py
+      hash: md5
+      md5: 9962f65f9cad55cce8c343b9a1727db5
+      size: 509
+    outs:
+    - path: data/identity/player_map.parquet
+      hash: md5
+      md5: addf59f3b663a44344c7d876ae5267ec
+      size: 256217
+    - path: reports/identity_resolution.md
+      hash: md5
+      md5: 24e078dba0e8678144caf9e777cd7829
+      size: 3197
+  spadl_statsbomb:
+    cmd: python src/harmonise/to_spadl.py
+    deps:
+    - path: config.yaml
+      hash: md5
+      md5: eb559350898f09b01453abf33bd5375d
+      size: 956
+    - path: manifest.yaml
+      hash: md5
+      md5: cdf410eafdcb7d2bd5e4c500c8627881
+      size: 2345
+    - path: src/harmonise/to_spadl.py
+      hash: md5
+      md5: fd3507611ed332590c3a9847dcdd7345
+      size: 4380
+    - path: src/ingest/corpus.py
+      hash: md5
+      md5: 9962f65f9cad55cce8c343b9a1727db5
+      size: 509
+    outs:
+    - path: data/spadl/statsbomb
+      hash: md5
+      md5: d88f322325552266b66f9750c11f85c4.dir
+      size: 264601771
+      nfiles: 82

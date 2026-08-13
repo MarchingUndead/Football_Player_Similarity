@@ -1,0 +1,66 @@
+stages:
+  # Raw StatsBomb clone is pinned by its own git SHA (recorded in manifest.yaml),
+  # so the manifest stands in for the 14 GB clone as this stage's data dependency.
+  staging_statsbomb:
+    cmd: python src/ingest/to_parquet.py
+    deps:
+      - src/ingest/to_parquet.py
+      - src/ingest/corpus.py
+      - config.yaml
+      - manifest.yaml
+    outs:
+      - data/staging/statsbomb
+
+  validate_staging:
+    cmd: python src/ingest/validate.py
+    deps:
+      - src/ingest/validate.py
+      - src/ingest/corpus.py
+      - data/staging/statsbomb
+    outs:
+      - reports/staging_validation.md:
+          cache: false
+
+  orientation_check:
+    cmd: python src/ingest/orientation_check.py
+    deps:
+      - src/ingest/orientation_check.py
+      - src/ingest/corpus.py
+      - data/staging/statsbomb
+    outs:
+      - reports/orientation_check.md:
+          cache: false
+
+  build_views:
+    cmd: python src/ingest/build_views.py
+    deps:
+      - src/ingest/build_views.py
+      - src/ingest/corpus.py
+      - data/staging/statsbomb
+    outs:
+      - data/football.duckdb
+
+  identity_join:
+    cmd: python src/harmonise/identity_join.py
+    deps:
+      - src/harmonise/identity_join.py
+      - src/harmonise/identity_overrides.csv
+      - src/ingest/corpus.py
+      - data/staging/statsbomb
+      - data/raw/reep
+      - data/raw/transfermarkt
+    outs:
+      - data/identity/player_map.parquet
+      - reports/identity_resolution.md:
+          cache: false
+
+  # reads the pinned raw clone via socceraction's maintained loader (manifest = pin proxy)
+  spadl_statsbomb:
+    cmd: python src/harmonise/to_spadl.py
+    deps:
+      - src/harmonise/to_spadl.py
+      - src/ingest/corpus.py
+      - config.yaml
+      - manifest.yaml
+    outs:
+      - data/spadl/statsbomb

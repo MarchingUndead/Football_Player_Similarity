@@ -1,5 +1,18 @@
-numpy
+numpy>=1.26,<2.0
+pandera>=0.17.2,<0.18
+multimethod<1.12  # pandera 0.17 needs the removed `overload` API
+socceraction[statsbomb]>=1.5.3
 pandas
+pyarrow
+duckdb
+pyyaml
+tqdm
+tabulate
+pytest
 matplotlib
 scipy
 scikit-learn
+dvc
+kaggle
+ipykernel
+nbclient  # headless notebook execution

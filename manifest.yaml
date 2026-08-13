@@ -34,5 +34,13 @@ transfermarkt:
   note: dataset refreshes weekly upstream; this snapshot is content-hashed by DVC
     (data/raw/transfermarkt.dvc)
 
-# pending download:
-# reep: pin repo commit on download day
+reep:
+  source: https://reep.football/downloads (withqwerty/reep register, v1)
+  release: 20260810T075032Z
+  fetched: 2026-08-10
+  license: CC0-1.0
+  files: 21 (canonical CSV bundle + overlays + schema.json + checksums.txt)
+  verification: every file sha256-verified against release.json manifest at download
+  note: bridges.csv.gz = 4.9M provider-ID crosswalks; covers wyscout (1.24M),
+    transfermarkt (1.10M), statsbomb (26k) — all three project providers bridged.
+    Resolution rate against our corpus to be measured in phase 2 identity join.

@@ -1,1 +1,23 @@
 # single source of truth
+
+paths:
+  statsbomb: data/raw/statsbomb/data
+  staging: data/staging
+  wyscout: data/raw/wyscout
+  transfermarkt: data/raw/transfermarkt
+  reep: data/raw/reep
+  reports: reports
+
+# The corpus include-list. Everything else on disk is reported by the
+# coverage script but never ingested.
+# 2026-08-11: StatsBomb-only (Wyscout deferred). Everything on disk enters,
+# including single-team slices (Messi, Arsenal 03/04, Leverkusen, old WC
+# selections) — no complete release of those seasons exists, accepted as-is.
+# Unit of representation downstream: (player_id, competition_id, season_id) —
+# never pool a career; internationals are separate entities under this key.
+corpus:
+  statsbomb:
+    include: all # every comp-season on disk ("all"), or a {competition_id: [seasons]} map
+    exclude:
+      - 1238 # Indian Super league — outside every stated target
+  wyscout: [] # secondary source, deferred — nothing ingested yet
