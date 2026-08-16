@@ -64,3 +64,51 @@ stages:
       - manifest.yaml
     outs:
       - data/spadl/statsbomb
+
+  pass_difficulty:
+    cmd: python src/features/pass_difficulty.py
+    deps:
+      - src/features/pass_difficulty.py
+      - src/ingest/corpus.py
+      - data/spadl/statsbomb
+      - data/football.duckdb
+    outs:
+      - data/features/pass_difficulty_actions.parquet
+      - data/features/pass_difficulty_entity.parquet
+      - reports/pass_difficulty.md:
+          cache: false
+
+  quality:
+    cmd: python src/features/quality.py
+    deps:
+      - src/features/quality.py
+      - src/ingest/corpus.py
+      - data/football.duckdb
+    outs:
+      - data/features/player_season_quality.parquet
+
+  build_features:
+    cmd: python src/features/build_features.py
+    deps:
+      - src/features/build_features.py
+      - src/ingest/corpus.py
+      - data/spadl/statsbomb
+      - data/football.duckdb
+      - data/features/pass_difficulty_entity.parquet
+    outs:
+      - data/features/player_season_context.parquet
+      - data/features/player_season_team_adjusted.parquet
+      - reports/team_deconfounding.md:
+          cache: false
+
+  baseline_cosine:
+    cmd: python src/models/baseline_cosine.py
+    deps:
+      - src/models/baseline_cosine.py
+      - src/ingest/corpus.py
+      - data/features/player_season_team_adjusted.parquet
+    outs:
+      - data/models/baseline_vectors.parquet
+      - data/models/same_player_season_similarity.parquet
+      - reports/style_drift.md:
+          cache: false

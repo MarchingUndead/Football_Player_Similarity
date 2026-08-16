@@ -136,3 +136,29 @@ would only exist for men anyway (73.2% of men resolved, 0% of women; D-report
 transfer histories (E5 replacement pairs), and appearance counts (shrinkage
 support) — all men-only via the identity map. Nothing downstream may join
 `player_valuations.csv`.
+
+## D14 — entity key is (player_id, team_id, season); context becomes derived (2026-08-15)
+Supersedes the D6/D11 formulation. The comparable entity is one player at one
+team in one season. National teams are distinct team_ids, so club/country
+separation holds **by construction** instead of by a context flag; the flag
+survives as a derived attribute (is the team's competition international) for
+filtering and eval. Mid-season transfers now split into separate entities —
+correct, since a different system is a different behavioural context. Same-team
+competitions still pool (Barcelona league + CL final = one entity).
+**Why:** the previous key silently pooled two clubs when a player transferred
+within a season; team is part of what identifies a behavioural sample.
+**Forces:** features, adjustments, embeddings and the index all key on
+(player_id, team_id, season). Identification is by player_id, never name —
+names collide.
+
+## D15 — empirical-Bayes shrinkage dropped; transparent support filtering instead (2026-08-15)
+No feature is pulled toward a positional prior. Sparse entities keep their raw
+(possession-adjusted, team-residualized) values, and every table carries support
+columns (matches, minutes, actions, team group size) so consumers filter
+explicitly — e.g. "entities with 450+ minutes" — instead of trusting an
+invisible prior.
+**Why:** shrinkage blends an entity's data with an assumed population, and how
+much blending happened is invisible at query time; a filter is auditable.
+**Forces:** low-support entities are noisy and *visibly* so; eval must always
+state its support threshold; bootstrap confidence intervals (M5) remain planned
+— they quantify noise without altering point estimates.

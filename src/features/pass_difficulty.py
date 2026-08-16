@@ -1,0 +1,122 @@
+"""M3-T2: pass-difficulty model + risk profile (PLAN §5.1).
+
+Raw completion percentage hides style: a 90%-completion player may simply never
+attempt a hard ball. So fit a small model of P(completion | pass geometry,
+pressure) and split every player's passing into two properly-stated quantities:
+
+  expected_completion_rate_of_attempted_passes  — how hard are the balls they
+      attempt? (low = risk appetite; a *choice*, hence a style feature)
+  pass_completion_rate_above_expected           — actual minus expected
+      completion; execution skill on the passes they chose.
+
+Model: HistGradientBoosting on length, direction components, angle, start/end
+location, under_pressure (joined from staging via original_event_id).
+Predictions are OUT-OF-FOLD (5-fold, grouped by game) so a player's residual is
+never scored by a model that saw those passes.
+
+Outputs:
+  data/features/pass_difficulty_actions.parquet  (game_id, action_id, p_complete,
+      success — per-action, reused as an M5 state feature)
+  data/features/pass_difficulty_entity.parquet   (per entity, joined into
+      build_features)
+  reports/pass_difficulty.md                     (calibration + residual checks)
+"""
+
+import sys
+from pathlib import Path
+
+import duckdb
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.metrics import brier_score_loss, roc_auc_score
+from sklearn.model_selection import GroupKFold
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ingest"))
+from corpus import ROOT, load_config  # noqa: E402
+
+CFG = load_config()
+SPADL = ROOT / "data" / "spadl" / "statsbomb"
+DB = ROOT / "data" / "football.duckdb"
+OUT_ACTIONS = ROOT / "data" / "features" / "pass_difficulty_actions.parquet"
+OUT_ENTITY = ROOT / "data" / "features" / "pass_difficulty_entity.parquet"
+
+MODEL_FEATURES = ["length_m", "dx_m", "abs_dy_m", "angle_rad",
+                  "start_x", "start_y", "end_x", "under_pressure"]
+
+PASSES_SQL = f"""
+SELECT a.game_id, a.action_id, a.player_id, a.team_id, c.season,
+       a.start_x, a.start_y, a.end_x,
+       sqrt((a.end_x - a.start_x) ^ 2 + (a.end_y - a.start_y) ^ 2) AS length_m,
+       a.end_x - a.start_x                                          AS dx_m,
+       abs(a.end_y - a.start_y)                                     AS abs_dy_m,
+       atan2(abs(a.end_y - a.start_y), a.end_x - a.start_x)         AS angle_rad,
+       coalesce(e.under_pressure, false)::INT                       AS under_pressure,
+       (r.result_name = 'success')::INT                             AS success
+FROM '{SPADL}/[0-9]*.parquet' a
+JOIN '{SPADL}/actiontypes.parquet' t USING (type_id)
+JOIN '{SPADL}/results.parquet' r USING (result_id)
+JOIN competitions c USING (competition_id, season_id)
+LEFT JOIN events e ON e.match_id = a.game_id AND e.event_id = a.original_event_id
+WHERE a.period_id <= 4 AND t.type_name = 'pass'
+  AND a.end_x IS NOT NULL AND a.end_y IS NOT NULL
+"""
+
+if __name__ == "__main__":
+    con = duckdb.connect(str(DB), read_only=True)
+    df = con.sql(PASSES_SQL).df()
+    print(f"{len(df):,} passes, {df.under_pressure.mean():.1%} under pressure, "
+          f"{df.success.mean():.1%} completed")
+
+    X = df[MODEL_FEATURES].to_numpy(dtype=np.float32)
+    y = df["success"].to_numpy()
+    df["p_complete"] = np.nan
+    for fold, (tr, te) in enumerate(
+            GroupKFold(n_splits=5).split(X, y, groups=df.game_id)):
+        model = HistGradientBoostingClassifier(random_state=fold)
+        model.fit(X[tr], y[tr])
+        df.iloc[te, df.columns.get_loc("p_complete")] = \
+            model.predict_proba(X[te])[:, 1]
+        print(f"fold {fold}: scored {len(te):,}")
+
+    auc = roc_auc_score(y, df.p_complete)
+    brier = brier_score_loss(y, df.p_complete)
+    resid_mean = (df.success - df.p_complete).mean()
+
+    OUT_ENTITY.parent.mkdir(parents=True, exist_ok=True)
+    df[["game_id", "action_id", "p_complete", "success"]] \
+        .to_parquet(OUT_ACTIONS, compression="zstd", index=False)
+
+    entity = (df.groupby(["player_id", "team_id", "season"], as_index=False)
+                .agg(expected_completion_rate_of_attempted_passes=("p_complete", "mean"),
+                     actual=("success", "mean")))
+    entity["pass_completion_rate_above_expected"] = \
+        entity.actual - entity.expected_completion_rate_of_attempted_passes
+    entity = entity.drop(columns="actual")
+    entity.to_parquet(OUT_ENTITY, compression="zstd", index=False)
+
+    # calibration: 10 predicted-probability bins vs observed completion
+    bins = pd.cut(df.p_complete, np.linspace(0, 1, 11))
+    cal = df.groupby(bins, observed=True).agg(predicted=("p_complete", "mean"),
+                                              observed=("success", "mean"),
+                                              n=("success", "size"))
+    report = ROOT / CFG["paths"]["reports"] / "pass_difficulty.md"
+    lines = [
+        "# Pass difficulty model (M3-T2)",
+        "",
+        "Regenerated by `src/features/pass_difficulty.py` on every `dvc repro`. Do not edit.",
+        "",
+        f"HistGradientBoosting on {', '.join(MODEL_FEATURES)}; out-of-fold",
+        "predictions, 5 folds grouped by game.",
+        "",
+        f"- passes: **{len(df):,}**  |  AUC: **{auc:.3f}**  |  Brier: **{brier:.4f}**",
+        f"- overall residual mean (should be ~0): **{resid_mean:+.4f}**",
+        "",
+        "| predicted bin | mean predicted | observed completion | n |",
+        "|---|--:|--:|--:|",
+    ] + [f"| {ix} | {r.predicted:.3f} | {r.observed:.3f} | {r.n:,} |"
+         for ix, r in cal.iterrows()]
+    report.write_text("\n".join(lines) + "\n")
+
+    print(f"AUC {auc:.3f}, Brier {brier:.4f}, residual mean {resid_mean:+.4f}")
+    print(f"{len(entity):,} entities -> {OUT_ENTITY.relative_to(ROOT)}")

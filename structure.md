@@ -54,9 +54,17 @@ pinned SHA stands in for it (D3).
 | `src/harmonise/to_spadl.py` | M2-T1: SPADL action table (D12) | corpus.py, raw statsbomb via socceraction | writes data/spadl/statsbomb/ |
 | `src/harmonise/identity_join.py` | M2-T2: StatsBomb→reep→Transfermarkt id map | staging, raw reep + transfermarkt, overrides csv | writes data/identity/player_map.parquet + report |
 | `src/harmonise/identity_overrides.csv` | manual id fixes, win over the bridge | hand-edited | identity_join.py |
+| `src/features/build_features.py` | M3: entity feature table (incl. possession rates) + team fixed-effect residuals, key (player, team, season) | spadl, football.duckdb views | writes data/features/player_season_context.parquet + …team_adjusted.parquet + team_deconfounding.md |
+| `src/features/pass_difficulty.py` | M3-T2: OOF pass-completion model → risk features | spadl, staging under_pressure | writes pass_difficulty_{actions,entity}.parquet + report |
+| `src/features/quality.py` | M3-T6: quality axis (npxG+xA/90), separate from style | staging events, minutes view | writes data/features/player_season_quality.parquet |
+| `src/models/baseline_cosine.py` | M4: z-scored style vectors + same-player season similarity | team-adjusted features | writes data/models/{baseline_vectors,same_player_season_similarity}.parquet + style_drift report |
 | `dvc.yaml` / `dvc.lock` | pipeline stage + recorded hashes | see above | `dvc repro` |
 | `notebooks/00_data_tour.ipynb` | exploration only, not pipeline | raw data | human |
 | `notebooks/example_match_events.ipynb` | event-map visualization of one match half | staging Parquet, config.yaml | human |
+| `notebooks/documentation.ipynb` | DuckDB embedded-SQL tutorial + repo idiom reference | features/spadl parquet, football.duckdb | human |
+| `src/models/trajectories.py` | career-sequence data prep for notebooks (no modeling) | baseline_vectors.parquet | imported by trajectory_study |
+| `notebooks/trajectory_study.ipynb` | trajectory analysis skeleton: DTW + alternatives are TODO(you), viz/plumbing done | trajectories.py | human |
+| `PLAN.md` (repo) | short working plan, supersedes ~/football/PLAN.md for daily use | — | human |
 | `data/raw/*.dvc` | DVC tracking of raw archives | — | `dvc pull/checkout` |
 
 ## Invariants to preserve in future changes
@@ -72,5 +80,6 @@ pinned SHA stands in for it (D3).
 
 ## Next additions (planned, not yet built)
 
-- M2 Writeup #1 → reports/01_corpus_normalisation.md
-- M3 feature stage → reads data/spadl/, grouped by (player, season, context) per D6/D11
+- M4 eval harness (E1–E8, no shrinkage — support-threshold filtering per D15)
+  + M1 baselines (z-score cosine, Ledoit-Wolf Mahalanobis, Player Vectors NMF)
+  over data/features/player_season_team_adjusted.parquet
