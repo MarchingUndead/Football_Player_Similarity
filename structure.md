@@ -53,6 +53,7 @@ pinned SHA stands in for it (D3).
 | `src/ingest/build_views.py` | T9: DuckDB views + minutes + entity roster | corpus.py, staging, competitions.json | writes data/football.duckdb |
 | `src/harmonise/to_spadl.py` | M2-T1: SPADL action table (D12) | corpus.py, raw statsbomb via socceraction | writes data/spadl/statsbomb/ |
 | `src/harmonise/identity_join.py` | M2-T2: StatsBomb→reep→Transfermarkt id map | staging, raw reep + transfermarkt, overrides csv | writes data/identity/player_map.parquet + report |
+| `src/harmonise/wyscout_to_spadl.py` | Wyscout → SPADL, same schema/convention as statsbomb layer; WC18 excluded (§2.2) | raw wyscout via socceraction loader, config.yaml | writes data/spadl/wyscout/ |
 | `src/harmonise/identity_overrides.csv` | manual id fixes, win over the bridge | hand-edited | identity_join.py |
 | `src/features/build_features.py` | M3: entity feature table (incl. possession rates) + team fixed-effect residuals, key (player, team, season) | spadl, football.duckdb views | writes data/features/player_season_context.parquet + …team_adjusted.parquet + team_deconfounding.md |
 | `src/features/pass_difficulty.py` | M3-T2: OOF pass-completion model → risk features | spadl, staging under_pressure | writes pass_difficulty_{actions,entity}.parquet + report |
@@ -64,7 +65,10 @@ pinned SHA stands in for it (D3).
 | `notebooks/documentation.ipynb` | DuckDB embedded-SQL tutorial + repo idiom reference | features/spadl parquet, football.duckdb | human |
 | `src/models/trajectories.py` | career-sequence data prep for notebooks (no modeling) | baseline_vectors.parquet | imported by trajectory_study |
 | `notebooks/trajectory_study.ipynb` | trajectory analysis skeleton: DTW + alternatives are TODO(you), viz/plumbing done | trajectories.py | human |
+| `src/models/m1_player_vectors.py` | M4: Player Vectors baseline (NMF heatmaps) + KMeans role clusters | spadl, features parquet | writes data/models/player_vectors.parquet + report + map |
+| `notebooks/player_clusters.ipynb` | cluster browser + both-space look-alike pairs + `lookalikes()` query | baseline_vectors, player_vectors, quality parquets | human |
 | `PLAN.md` (repo) | short working plan, supersedes ~/football/PLAN.md for daily use | — | human |
+| `GPU_PHASE.md` | M5/M6/M7 implementation guidelines incl. the two C++ tracks (CUDA kernel, OpenMP k-NN) | — | human (Sahil implements) |
 | `data/raw/*.dvc` | DVC tracking of raw archives | — | `dvc pull/checkout` |
 
 ## Invariants to preserve in future changes

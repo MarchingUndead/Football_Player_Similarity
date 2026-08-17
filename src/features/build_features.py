@@ -39,6 +39,9 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ingest"))
 from corpus import ROOT, load_config  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "harmonise"))
+from spadl_union import actions_union_sql, comps_union_sql  # noqa: E402
+
 CFG = load_config()
 SPADL = ROOT / "data" / "spadl" / "statsbomb"
 DB = ROOT / "data" / "football.duckdb"
@@ -54,15 +57,28 @@ MIN_ACTIONS_FOR_R2 = 300   # R2 measured on solid entities so noise doesn't drow
 # zone grid: 6 columns own-goal -> attacking, 5 rows across the pitch (PLAN §5.1)
 ZX, ZY = 105 / 6, 68 / 5
 
+WY_SUPPORT = ROOT / "data" / "spadl" / "wyscout_support"
+
 SQL = f"""
-WITH actions AS (            -- one clean pass over spadl: names on, shootout off
+WITH raw_actions AS (        -- both providers, Wyscout ids offset (spadl_union.py)
+    {actions_union_sql(ROOT)}
+),
+comps AS (                   -- competitions dim over both providers
+    {comps_union_sql(ROOT)}
+),
+actions AS (                 -- one clean pass over spadl: names on, shootout off.
+    -- is_carry: spadl 'dribble' = carry. Wyscout carries are SPADL synthetic
+    -- inferences and ~5x undercounted vs StatsBomb native annotation (D16), so
+    -- composition denominators exclude carries for BOTH providers, and all
+    -- carry-derived features are computed from StatsBomb rows only.
     SELECT a.*, t.type_name, r.result_name, b.bodypart_name,
+           t.type_name = 'dribble' AS is_carry,
            c.season, CASE WHEN c.is_country THEN 'country' ELSE 'club' END AS context
-    FROM '{SPADL}/[0-9]*.parquet' a
+    FROM raw_actions a
     JOIN '{SPADL}/actiontypes.parquet' t USING (type_id)
     JOIN '{SPADL}/results.parquet' r USING (result_id)
     JOIN '{SPADL}/bodyparts.parquet' b USING (bodypart_id)
-    JOIN competitions c USING (competition_id, season_id)
+    JOIN comps c USING (competition_id, season_id)
     WHERE a.period_id <= 4 AND t.type_name <> 'non_action'
 ),
 
@@ -72,14 +88,19 @@ spine AS (                   -- the entity and its support columns
     FROM actions GROUP BY player_id, team_id, season
 ),
 
-minutes AS (                 -- support: playing time, from the lineup-stint view
-    SELECT m.player_id, m.team_id, c.season,
-           sum(m.minutes) AS minutes,
-           any_value(m.player) AS player, any_value(m.team) AS team
-    FROM player_match_minutes m
-    JOIN matches ma USING (match_id)
-    JOIN competitions c USING (competition_id, season_id)
-    GROUP BY ALL
+minutes AS (                 -- support: playing time. statsbomb from the
+    SELECT player_id, team_id, season,   -- lineup-stint view, wyscout from dims
+           sum(minutes) AS minutes,
+           any_value(player) AS player, any_value(team) AS team
+    FROM (
+        SELECT m.player_id, m.team_id, c.season, m.minutes, m.player, m.team
+        FROM player_match_minutes m
+        JOIN matches ma USING (match_id)
+        JOIN competitions c USING (competition_id, season_id)
+        UNION ALL
+        SELECT player_id, team_id, season, minutes, player, team
+        FROM '{WY_SUPPORT}/minutes.parquet'
+    ) GROUP BY ALL
 ),
 
 pos_counts AS (              -- how often each entity was fielded in each position
@@ -94,45 +115,53 @@ pos_counts AS (              -- how often each entity was fielded in each positi
     WHERE l.position IS NOT NULL
     GROUP BY ALL
 ),
-position AS (                -- metadata for probes/filters, not a style feature
+position AS (                -- metadata for probes/filters, not a style feature.
     SELECT player_id, team_id, season, position, pos_group
     FROM (SELECT *, row_number() OVER (PARTITION BY player_id, team_id, season
                                        ORDER BY n DESC) AS rn
           FROM pos_counts)
     WHERE rn = 1
+    UNION ALL                -- wyscout: players.json role, constant per player
+    SELECT m.player_id, m.team_id, m.season, p.position, p.pos_group
+    FROM '{WY_SUPPORT}/minutes.parquet' m
+    JOIN '{WY_SUPPORT}/positions.parquet' p USING (player_id)
 ),
 
 -- 1. action mix: of everything this player does on the ball, what fraction is X?
+--    Denominator = NON-CARRY actions (D16: provider-comparable universe).
+--    carry_share_of_actions keeps its true all-actions denominator but exists
+--    only for statsbomb entities, whose carries are native annotations.
 mix AS (
     SELECT player_id, team_id, season,
-           count(*) FILTER (type_name = 'pass')          / count(*)::DOUBLE AS pass_share_of_actions,
-           count(*) FILTER (type_name = 'dribble')       / count(*)::DOUBLE AS carry_share_of_actions,
-           count(*) FILTER (type_name = 'take_on')       / count(*)::DOUBLE AS take_on_share_of_actions,
-           count(*) FILTER (type_name = 'cross')         / count(*)::DOUBLE AS cross_share_of_actions,
+           count(*) FILTER (type_name = 'pass')          / count(*) FILTER (NOT is_carry)::DOUBLE AS pass_share_of_actions,
+           CASE WHEN any_value(provider) = 'statsbomb'
+                THEN count(*) FILTER (is_carry) / count(*)::DOUBLE END        AS carry_share_of_actions,
+           count(*) FILTER (type_name = 'take_on')       / count(*) FILTER (NOT is_carry)::DOUBLE AS take_on_share_of_actions,
+           count(*) FILTER (type_name = 'cross')         / count(*) FILTER (NOT is_carry)::DOUBLE AS cross_share_of_actions,
            count(*) FILTER (type_name IN ('shot', 'shot_penalty', 'shot_freekick'))
-                                                         / count(*)::DOUBLE AS shot_share_of_actions,
-           count(*) FILTER (type_name = 'tackle')        / count(*)::DOUBLE AS tackle_share_of_actions,
-           count(*) FILTER (type_name = 'interception')  / count(*)::DOUBLE AS interception_share_of_actions,
-           count(*) FILTER (type_name = 'clearance')     / count(*)::DOUBLE AS clearance_share_of_actions,
-           count(*) FILTER (type_name = 'foul')          / count(*)::DOUBLE AS foul_share_of_actions,
+                                                         / count(*) FILTER (NOT is_carry)::DOUBLE AS shot_share_of_actions,
+           count(*) FILTER (type_name = 'tackle')        / count(*) FILTER (NOT is_carry)::DOUBLE AS tackle_share_of_actions,
+           count(*) FILTER (type_name = 'interception')  / count(*) FILTER (NOT is_carry)::DOUBLE AS interception_share_of_actions,
+           count(*) FILTER (type_name = 'clearance')     / count(*) FILTER (NOT is_carry)::DOUBLE AS clearance_share_of_actions,
+           count(*) FILTER (type_name = 'foul')          / count(*) FILTER (NOT is_carry)::DOUBLE AS foul_share_of_actions,
            count(*) FILTER (type_name IN ('freekick_short', 'freekick_crossed',
                                           'corner_short', 'corner_crossed'))
-                                                         / count(*)::DOUBLE AS setpiece_share_of_actions,
-           count(*) FILTER (type_name = 'throw_in')      / count(*)::DOUBLE AS throw_in_share_of_actions,
-           count(*) FILTER (type_name = 'bad_touch')     / count(*)::DOUBLE AS bad_touch_share_of_actions,
-           count(*) FILTER (type_name LIKE 'keeper%')    / count(*)::DOUBLE AS keeper_action_share_of_actions
+                                                         / count(*) FILTER (NOT is_carry)::DOUBLE AS setpiece_share_of_actions,
+           count(*) FILTER (type_name = 'throw_in')      / count(*) FILTER (NOT is_carry)::DOUBLE AS throw_in_share_of_actions,
+           count(*) FILTER (type_name = 'bad_touch')     / count(*) FILTER (NOT is_carry)::DOUBLE AS bad_touch_share_of_actions,
+           count(*) FILTER (type_name LIKE 'keeper%')    / count(*) FILTER (NOT is_carry)::DOUBLE AS keeper_action_share_of_actions
     FROM actions GROUP BY ALL
 ),
 
 -- 2. spatial signature: share of actions started in each 6x5 zone.
 --    x0 = own-goal end .. x5 = attacking end; y0 .. y4 across the pitch width.
-zone_counts AS (
+zone_counts AS (             -- non-carry actions only (D16 comparability)
     SELECT player_id, team_id, season,
            'zone_x' || least(floor(start_x / {ZX}), 5)::INT
                || '_y' || least(floor(start_y / {ZY}), 4)::INT
                || '_share_of_actions' AS zone,
            count(*) AS n
-    FROM actions GROUP BY ALL
+    FROM actions WHERE NOT is_carry GROUP BY ALL
 ),
 zones AS (
     PIVOT (
@@ -155,14 +184,15 @@ pass AS (
     FROM actions WHERE type_name = 'pass' GROUP BY ALL
 ),
 
--- 4. carry profile: when they move with the ball, how far, how direct, into danger?
+-- 4. carry profile: statsbomb native carries ONLY (D16) — wyscout's are
+--    synthetic straight-line inferences; those entities get NULL here.
 carry AS (
     SELECT player_id, team_id, season,
            avg(sqrt((end_x - start_x) ^ 2 + (end_y - start_y) ^ 2)) AS carry_length_mean_m,
            avg((end_x - start_x >= 10)::INT)                        AS progressive_share_of_carries,
            avg((start_x < 70 AND end_x >= 70)::INT)                 AS final_third_entry_share_of_carries,
            avg((end_x >= 88.5 AND end_y BETWEEN 13.84 AND 54.16)::INT) AS box_entry_share_of_carries
-    FROM actions WHERE type_name = 'dribble' GROUP BY ALL
+    FROM actions WHERE type_name = 'dribble' AND provider = 'statsbomb' GROUP BY ALL
 ),
 
 -- 5. duel/shot/footedness profiles
@@ -191,10 +221,12 @@ defense AS (
            avg((start_x >= 52.5)::INT) AS opponent_half_share_of_defensive_actions
     FROM actions WHERE type_name IN ('tackle', 'interception') GROUP BY ALL
 ),
-tempo AS (                   -- net field progress per on-ball involvement
+tempo AS (                   -- net field progress per on-ball involvement.
+    -- includes carries -> statsbomb only (D16); wyscout entities get NULL.
     SELECT player_id, team_id, season,
            avg(end_x - start_x) AS upfield_progress_per_pass_or_carry_mean_m
-    FROM actions WHERE type_name IN ('pass', 'dribble') GROUP BY ALL
+    FROM actions WHERE type_name IN ('pass', 'dribble') AND provider = 'statsbomb'
+    GROUP BY ALL
 ),
 
 -- 7. possession-opportunity rates: activity per 100 team/opponent actions,

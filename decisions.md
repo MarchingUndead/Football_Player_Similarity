@@ -162,3 +162,25 @@ much blending happened is invisible at query time; a filter is auditable.
 **Forces:** low-support entities are noisy and *visibly* so; eval must always
 state its support threshold; bootstrap confidence intervals (M5) remain planned
 — they quantify noise without altering point estimates.
+
+## D16 — carry features restricted to StatsBomb; carry-free composition denominators (2026-08-17)
+Integrating Wyscout exposed the §4.3 problem with real numbers: SPADL's synthetic
+dribble inference yields ~5x fewer carries than StatsBomb's native annotation
+(carry share of actions: 39.7% sb vs 7.3% wy; same player, same season — Messi
+17/18: 46.5% vs 11.7%), and since composition shares divide by total actions,
+EVERY mix share was provider-skewed (team_r2 for carry share hit 0.93 — provider
+leaking through team ids).
+**Why:** an inference is not an annotation; the counts alone differ 5x, so no
+calibration of per-carry features can rescue cross-provider comparability.
+**Decision:** (1) all composition denominators (mix shares, zone shares) exclude
+carries for BOTH providers — the comparable action universe; (2) every
+carry-derived feature (carry_share_of_actions — which keeps its true all-actions
+denominator — carry_length, progressive/final-third/box entry shares, upfield
+progress per pass-or-carry) is computed from StatsBomb rows only and is NULL for
+Wyscout entities; z-scoring imputes NULL to the population mean, so wyscout
+entities are neutral, not wrong, on those axes.
+**Forces:** "X_share_of_actions" mix/zone columns now read "share of non-carry
+actions" — names kept to avoid churn, meaning documented here and in the stage
+docstring. The §4.3 benchmark (strip sb native carries, re-run the inference,
+measure recall/error) remains owed and would let carry features return
+corpus-wide if it ever passes.

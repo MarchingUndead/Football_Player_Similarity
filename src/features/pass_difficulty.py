@@ -35,6 +35,9 @@ from sklearn.model_selection import GroupKFold
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ingest"))
 from corpus import ROOT, load_config  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "harmonise"))
+from spadl_union import actions_union_sql, comps_union_sql  # noqa: E402
+
 CFG = load_config()
 SPADL = ROOT / "data" / "spadl" / "statsbomb"
 DB = ROOT / "data" / "football.duckdb"
@@ -44,7 +47,12 @@ OUT_ENTITY = ROOT / "data" / "features" / "pass_difficulty_entity.parquet"
 MODEL_FEATURES = ["length_m", "dx_m", "abs_dy_m", "angle_rad",
                   "start_x", "start_y", "end_x", "under_pressure"]
 
+# wyscout has no under_pressure flag: the LEFT JOIN only matches statsbomb rows
+# (uuid original_event_id + un-offset match_id), so wyscout passes get 0 —
+# a known provider gap, flagged in phasewise notes.
 PASSES_SQL = f"""
+WITH raw_actions AS ({actions_union_sql(ROOT)}),
+comps AS ({comps_union_sql(ROOT)})
 SELECT a.game_id, a.action_id, a.player_id, a.team_id, c.season,
        a.start_x, a.start_y, a.end_x,
        sqrt((a.end_x - a.start_x) ^ 2 + (a.end_y - a.start_y) ^ 2) AS length_m,
@@ -53,10 +61,10 @@ SELECT a.game_id, a.action_id, a.player_id, a.team_id, c.season,
        atan2(abs(a.end_y - a.start_y), a.end_x - a.start_x)         AS angle_rad,
        coalesce(e.under_pressure, false)::INT                       AS under_pressure,
        (r.result_name = 'success')::INT                             AS success
-FROM '{SPADL}/[0-9]*.parquet' a
+FROM raw_actions a
 JOIN '{SPADL}/actiontypes.parquet' t USING (type_id)
 JOIN '{SPADL}/results.parquet' r USING (result_id)
-JOIN competitions c USING (competition_id, season_id)
+JOIN comps c USING (competition_id, season_id)
 LEFT JOIN events e ON e.match_id = a.game_id AND e.event_id = a.original_event_id
 WHERE a.period_id <= 4 AND t.type_name = 'pass'
   AND a.end_x IS NOT NULL AND a.end_y IS NOT NULL

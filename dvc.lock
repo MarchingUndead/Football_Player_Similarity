@@ -5,8 +5,8 @@ stages:
     deps:
     - path: config.yaml
       hash: md5
-      md5: eb559350898f09b01453abf33bd5375d
-      size: 956
+      md5: fd860cb28660059bbb7de7694632f205
+      size: 1228
     - path: manifest.yaml
       hash: md5
       md5: cdf410eafdcb7d2bd5e4c500c8627881
@@ -132,8 +132,8 @@ stages:
     deps:
     - path: config.yaml
       hash: md5
-      md5: eb559350898f09b01453abf33bd5375d
-      size: 956
+      md5: fd860cb28660059bbb7de7694632f205
+      size: 1228
     - path: manifest.yaml
       hash: md5
       md5: cdf410eafdcb7d2bd5e4c500c8627881
@@ -149,29 +149,43 @@ stages:
     outs:
     - path: data/spadl/statsbomb
       hash: md5
-      md5: d88f322325552266b66f9750c11f85c4.dir
-      size: 264601771
+      md5: 5d02002e53b8a8bcb01a16db07a5f0fe.dir
+      size: 264606045
       nfiles: 82
   build_features:
     cmd: python src/features/build_features.py
     deps:
     - path: data/features/pass_difficulty_entity.parquet
       hash: md5
-      md5: ad7d73ac45ddf59fcba37eef6f4e3b56
-      size: 405917
+      md5: 63811a7de2152877df1ce7be23721f31
+      size: 480750
     - path: data/football.duckdb
       hash: md5
       md5: a24874b2c93835d84d5eddcfd906703a
       size: 536576
     - path: data/spadl/statsbomb
       hash: md5
-      md5: d88f322325552266b66f9750c11f85c4.dir
-      size: 264601771
+      md5: 5d02002e53b8a8bcb01a16db07a5f0fe.dir
+      size: 264606045
       nfiles: 82
+    - path: data/spadl/wyscout
+      hash: md5
+      md5: 305c080766ff6d500fe3f3c63f32f007.dir
+      size: 41049431
+      nfiles: 6
+    - path: data/spadl/wyscout_support
+      hash: md5
+      md5: 36876f7124ecaf135a6d9c46d7532f21.dir
+      size: 117204
+      nfiles: 3
     - path: src/features/build_features.py
       hash: md5
-      md5: 8e3372af9f8c5311dc92ca1136fb45d5
-      size: 16596
+      md5: 3e130bafad4c83029cdd8dc2fb2e10c1
+      size: 18679
+    - path: src/harmonise/spadl_union.py
+      hash: md5
+      md5: 79a1e10baed95bf6ca4d2a9cf16d20be
+      size: 1736
     - path: src/ingest/corpus.py
       hash: md5
       md5: 9962f65f9cad55cce8c343b9a1727db5
@@ -179,15 +193,15 @@ stages:
     outs:
     - path: data/features/player_season_context.parquet
       hash: md5
-      md5: 31eef464d3d1864e2208c594aaad0e41
-      size: 4140927
+      md5: 7994a160ce3f682092c7adf7a57dd16e
+      size: 4733858
     - path: data/features/player_season_team_adjusted.parquet
       hash: md5
-      md5: 796ec5f46f0f8a2fd71c8c36f77d4d54
-      size: 8441487
+      md5: d58b07e0b9ce9784284a85fa97ab6180
+      size: 9826684
     - path: reports/team_deconfounding.md
       hash: md5
-      md5: 8e9c0cd982b87b5eb21e525f7f09db38
+      md5: e7b3d88118fb94ece2b14b182c316c8a
       size: 3135
   adjust_features:
     cmd: python src/features/adjust_features.py
@@ -231,13 +245,27 @@ stages:
       size: 536576
     - path: data/spadl/statsbomb
       hash: md5
-      md5: d88f322325552266b66f9750c11f85c4.dir
-      size: 264601771
+      md5: 5d02002e53b8a8bcb01a16db07a5f0fe.dir
+      size: 264606045
       nfiles: 82
+    - path: data/spadl/wyscout
+      hash: md5
+      md5: 305c080766ff6d500fe3f3c63f32f007.dir
+      size: 41049431
+      nfiles: 6
+    - path: data/spadl/wyscout_support
+      hash: md5
+      md5: 36876f7124ecaf135a6d9c46d7532f21.dir
+      size: 117204
+      nfiles: 3
     - path: src/features/pass_difficulty.py
       hash: md5
-      md5: 3cab1d7d3e0f5036868a9ad55a9e50ed
-      size: 5766
+      md5: 2ecaa6c01c64cf79602d41b0f2e1f75f
+      size: 6188
+    - path: src/harmonise/spadl_union.py
+      hash: md5
+      md5: 79a1e10baed95bf6ca4d2a9cf16d20be
+      size: 1736
     - path: src/ingest/corpus.py
       hash: md5
       md5: 9962f65f9cad55cce8c343b9a1727db5
@@ -245,15 +273,15 @@ stages:
     outs:
     - path: data/features/pass_difficulty_actions.parquet
       hash: md5
-      md5: 19bc3d9b3d1ca430502044b4ff68cdc7
-      size: 29742272
+      md5: f539230a9b252c35e2dd589f24204f4e
+      size: 44372167
     - path: data/features/pass_difficulty_entity.parquet
       hash: md5
-      md5: ad7d73ac45ddf59fcba37eef6f4e3b56
-      size: 405917
+      md5: 63811a7de2152877df1ce7be23721f31
+      size: 480750
     - path: reports/pass_difficulty.md
       hash: md5
-      md5: 8d5b220b6693667bd24d6345c386d790
+      md5: 95a33f1bba5ee3c32fc15e04fd738ae7
       size: 897
   quality:
     cmd: python src/features/quality.py
@@ -280,8 +308,8 @@ stages:
     deps:
     - path: data/features/player_season_team_adjusted.parquet
       hash: md5
-      md5: 796ec5f46f0f8a2fd71c8c36f77d4d54
-      size: 8441487
+      md5: d58b07e0b9ce9784284a85fa97ab6180
+      size: 9826684
     - path: src/ingest/corpus.py
       hash: md5
       md5: 9962f65f9cad55cce8c343b9a1727db5
@@ -293,13 +321,148 @@ stages:
     outs:
     - path: data/models/baseline_vectors.parquet
       hash: md5
-      md5: 93b1cf8403e590c6d9287d1ebde5152f
-      size: 8565539
+      md5: ccdcd1228ea59bd75b76d29f6c361ecf
+      size: 9959921
     - path: data/models/same_player_season_similarity.parquet
       hash: md5
-      md5: 09ed8fa0f2870b912e811ae701bffe37
-      size: 58967
+      md5: 072b5429a27ebe597746654fa5ae6c66
+      size: 62917
     - path: reports/style_drift.md
       hash: md5
-      md5: a770225d57eaee967018cab583acd2dd
-      size: 3431
+      md5: 325ab4546e6b77869c752a7d405e1718
+      size: 3426
+  baseline_neighbours:
+    cmd: python src/models/neighbours.py
+    deps:
+    - path: data/models/baseline_vectors.parquet
+      hash: md5
+      md5: ccdcd1228ea59bd75b76d29f6c361ecf
+      size: 9959921
+    - path: src/ingest/corpus.py
+      hash: md5
+      md5: 9962f65f9cad55cce8c343b9a1727db5
+      size: 509
+    - path: src/models/neighbours.py
+      hash: md5
+      md5: 940bd091702ba28ad9094101de3af75f
+      size: 5216
+    - path: src/models/trajectories.py
+      hash: md5
+      md5: eaf26304078b6376b3475e35ab6a40fd
+      size: 2816
+    outs:
+    - path: data/models/baseline_neighbours.parquet
+      hash: md5
+      md5: f4a6c0ff757898d31f3d62d5534f332b
+      size: 1451666
+    - path: reports/baseline_neighbours.md
+      hash: md5
+      md5: 06dfadf16613079dcccb1877b25fbccd
+      size: 3850
+  player_vectors:
+    cmd: python src/models/m1_player_vectors.py
+    deps:
+    - path: data/features/player_season_context.parquet
+      hash: md5
+      md5: 7994a160ce3f682092c7adf7a57dd16e
+      size: 4733858
+    - path: data/football.duckdb
+      hash: md5
+      md5: a24874b2c93835d84d5eddcfd906703a
+      size: 536576
+    - path: data/spadl/statsbomb
+      hash: md5
+      md5: 5d02002e53b8a8bcb01a16db07a5f0fe.dir
+      size: 264606045
+      nfiles: 82
+    - path: data/spadl/wyscout
+      hash: md5
+      md5: 305c080766ff6d500fe3f3c63f32f007.dir
+      size: 41049431
+      nfiles: 6
+    - path: data/spadl/wyscout_support
+      hash: md5
+      md5: 36876f7124ecaf135a6d9c46d7532f21.dir
+      size: 117204
+      nfiles: 3
+    - path: src/harmonise/spadl_union.py
+      hash: md5
+      md5: 79a1e10baed95bf6ca4d2a9cf16d20be
+      size: 1736
+    - path: src/ingest/corpus.py
+      hash: md5
+      md5: 9962f65f9cad55cce8c343b9a1727db5
+      size: 509
+    - path: src/models/m1_player_vectors.py
+      hash: md5
+      md5: a8e0f6502553eeba609937571cf6c7eb
+      size: 8705
+    outs:
+    - path: data/models/player_vectors.parquet
+      hash: md5
+      md5: 3ce4c5ef6cffcdf8c9ca2b700647b0f3
+      size: 979732
+    - path: reports/figures/player_vectors_map.png
+      hash: md5
+      md5: 36f416208495ba359f79cdee91a3b36a
+      size: 173821
+    - path: reports/player_vectors.md
+      hash: md5
+      md5: fb674182a1fa6ed380cdaa21b8827ef3
+      size: 2713
+  spadl_wyscout:
+    cmd: python src/harmonise/wyscout_to_spadl.py
+    deps:
+    - path: config.yaml
+      hash: md5
+      md5: fd860cb28660059bbb7de7694632f205
+      size: 1228
+    - path: data/raw/wyscout
+      hash: md5
+      md5: bc9cb824d9c51b905096923f70e2513f.dir
+      size: 966804473
+      nfiles: 19
+    - path: src/harmonise/wyscout_to_spadl.py
+      hash: md5
+      md5: 87f0211d3985d4984d22bdb0bcdb8b81
+      size: 4924
+    - path: src/ingest/corpus.py
+      hash: md5
+      md5: 9962f65f9cad55cce8c343b9a1727db5
+      size: 509
+    outs:
+    - path: data/spadl/wyscout
+      hash: md5
+      md5: 305c080766ff6d500fe3f3c63f32f007.dir
+      size: 41049431
+      nfiles: 6
+  wyscout_dims:
+    cmd: python src/harmonise/wyscout_dims.py
+    deps:
+    - path: config.yaml
+      hash: md5
+      md5: fd860cb28660059bbb7de7694632f205
+      size: 1228
+    - path: data/raw/wyscout
+      hash: md5
+      md5: bc9cb824d9c51b905096923f70e2513f.dir
+      size: 966804473
+      nfiles: 19
+    - path: src/harmonise/spadl_union.py
+      hash: md5
+      md5: 79a1e10baed95bf6ca4d2a9cf16d20be
+      size: 1736
+    - path: src/harmonise/wyscout_dims.py
+      hash: md5
+      md5: 9db0f399715e0e6cf26374adf2f25b4e
+      size: 3776
+    - path: src/ingest/corpus.py
+      hash: md5
+      md5: 9962f65f9cad55cce8c343b9a1727db5
+      size: 509
+    outs:
+    - path: data/spadl/wyscout_support
+      hash: md5
+      md5: 36876f7124ecaf135a6d9c46d7532f21.dir
+      size: 117204
+      nfiles: 3

@@ -1,2 +1,4 @@
 /baseline_vectors.parquet
 /same_player_season_similarity.parquet
+/baseline_neighbours.parquet
+/player_vectors.parquet

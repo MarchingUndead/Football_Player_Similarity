@@ -13,6 +13,9 @@ paths:
 # 2026-08-11: StatsBomb-only (Wyscout deferred). Everything on disk enters,
 # including single-team slices (Messi, Arsenal 03/04, Leverkusen, old WC
 # selections) — no complete release of those seasons exists, accepted as-is.
+# 2026-08-17: Wyscout revived for the competitions StatsBomb lacks (§2.2
+# precedence): big-five 2017/18 + Euro 2016. WC2018 (id 28) excluded — the
+# StatsBomb copy is already in; never both providers for one competition.
 # Unit of representation downstream: (player_id, competition_id, season_id) —
 # never pool a career; internationals are separate entities under this key.
 corpus:
@@ -20,4 +23,7 @@ corpus:
     include: all # every comp-season on disk ("all"), or a {competition_id: [seasons]} map
     exclude:
       - 1238 # Indian Super league — outside every stated target
-  wyscout: [] # secondary source, deferred — nothing ingested yet
+  wyscout:
+    include: all
+    exclude:
+      - 28 # World Cup 2018 — StatsBomb's copy is in the corpus (§2.2)

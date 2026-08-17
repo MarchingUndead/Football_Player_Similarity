@@ -54,6 +54,27 @@ stages:
       - reports/identity_resolution.md:
           cache: false
 
+  spadl_wyscout:
+    cmd: python src/harmonise/wyscout_to_spadl.py
+    deps:
+      - src/harmonise/wyscout_to_spadl.py
+      - src/ingest/corpus.py
+      - config.yaml
+      - data/raw/wyscout
+    outs:
+      - data/spadl/wyscout
+
+  wyscout_dims:
+    cmd: python src/harmonise/wyscout_dims.py
+    deps:
+      - src/harmonise/wyscout_dims.py
+      - src/harmonise/spadl_union.py
+      - src/ingest/corpus.py
+      - config.yaml
+      - data/raw/wyscout
+    outs:
+      - data/spadl/wyscout_support
+
   # reads the pinned raw clone via socceraction's maintained loader (manifest = pin proxy)
   spadl_statsbomb:
     cmd: python src/harmonise/to_spadl.py
@@ -70,7 +91,10 @@ stages:
     deps:
       - src/features/pass_difficulty.py
       - src/ingest/corpus.py
+      - src/harmonise/spadl_union.py
       - data/spadl/statsbomb
+      - data/spadl/wyscout
+      - data/spadl/wyscout_support
       - data/football.duckdb
     outs:
       - data/features/pass_difficulty_actions.parquet
@@ -92,7 +116,10 @@ stages:
     deps:
       - src/features/build_features.py
       - src/ingest/corpus.py
+      - src/harmonise/spadl_union.py
       - data/spadl/statsbomb
+      - data/spadl/wyscout
+      - data/spadl/wyscout_support
       - data/football.duckdb
       - data/features/pass_difficulty_entity.parquet
     outs:
@@ -111,4 +138,34 @@ stages:
       - data/models/baseline_vectors.parquet
       - data/models/same_player_season_similarity.parquet
       - reports/style_drift.md:
+          cache: false
+
+  player_vectors:
+    cmd: python src/models/m1_player_vectors.py
+    deps:
+      - src/models/m1_player_vectors.py
+      - src/ingest/corpus.py
+      - src/harmonise/spadl_union.py
+      - data/spadl/statsbomb
+      - data/spadl/wyscout
+      - data/spadl/wyscout_support
+      - data/football.duckdb
+      - data/features/player_season_context.parquet
+    outs:
+      - data/models/player_vectors.parquet
+      - reports/player_vectors.md:
+          cache: false
+      - reports/figures/player_vectors_map.png:
+          cache: false
+
+  baseline_neighbours:
+    cmd: python src/models/neighbours.py
+    deps:
+      - src/models/neighbours.py
+      - src/models/trajectories.py
+      - src/ingest/corpus.py
+      - data/models/baseline_vectors.parquet
+    outs:
+      - data/models/baseline_neighbours.parquet
+      - reports/baseline_neighbours.md:
           cache: false

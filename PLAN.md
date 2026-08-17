@@ -25,7 +25,7 @@ filter on the support columns.
 | Source | Role | Status |
 |---|---|---|
 | StatsBomb Open Data | the corpus: everything released except ISL — 3,846 matches, 13.57M events, 79 comp-seasons, 426 matches with 360 upstream | ✅ ingested |
-| Wyscout (Pappalardo) | secondary provider | ⏸ deferred, on disk |
+| Wyscout (Pappalardo) | secondary provider: big-five 2017/18 + Euro 2016 (WC18 excluded — StatsBomb copy wins, §2.2) | ◐ SPADL-converted 2026-08-17; features/identity integration pending |
 | Transfermarkt | bios, transfers (E5), appearances; **market value dropped (D13)** | ✅ on disk; men-only via id map |
 | reep | id bridge StatsBomb↔Transfermarkt: men 73.2%, women 0% (structural) | ✅ joined |
 | DFL + SkillCorner tracking | validation of spatial proxies only | on disk / to fetch |
